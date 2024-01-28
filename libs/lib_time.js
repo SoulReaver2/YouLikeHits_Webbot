@@ -11,4 +11,5 @@ function timeOfnow() {
   return `${hours}:${minutes}:${seconds}`;
 }
 
-module.exports = { timeout, timeOfnow };
+module.exports.timeout = timeout;
+module.exports.timeOfnow = timeOfnow;

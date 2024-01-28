@@ -11,6 +11,12 @@ if (process.argv.length == 3) {
   numberOfRuns = Number.isInteger(x) ? x : numberOfRuns;
 }
 
+const options = {
+  headless: false,
+  args: ["--no-sandbox", "--disable-dev-shm-usage"]
+};
+const url = "https://www.youlikehits.com/youtubenew2.php";
+
 (async () => {
   await youlikehitsAutomation(numberOfRuns);
 })().catch((e) => {
