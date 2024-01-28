@@ -2,6 +2,10 @@ const puppeteer = require("puppeteer-extra");
 const Stealth = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(Stealth());
 
+const timeout = require("./libs/lib_time").timeout;
+const processAllHits = require("./libs/hit");
+const { showWelcomeScreen, showClosingScreen } = require("./libs/cli_views");
+
 const DEFAULT_NUMBER_OF_RUNS = 8;
 let numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
 const TEMPORISATION_SECONDES = 60 * 15; // 15 minutes

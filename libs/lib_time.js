@@ -1,6 +1,15 @@
 function timeout(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+function timeoutPromise(ms) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error("Promise timeout"));
+    }, ms);
+  });
+}
+
 function timeOfnow() {
   const now = new Date();
 
@@ -12,4 +21,5 @@ function timeOfnow() {
 }
 
 module.exports.timeout = timeout;
+module.exports.timeoutPromise = timeoutPromise;
 module.exports.timeOfnow = timeOfnow;
