@@ -3,6 +3,7 @@ const Stealth = require("puppeteer-extra-plugin-stealth");
 puppeteer.use(Stealth());
 
 const timeout = require("./libs/lib_time").timeout;
+const initializePageWithCookies = require("./libs/request");
 const processAllHits = require("./libs/hit");
 const { showWelcomeScreen, showClosingScreen } = require("./libs/cli_views");
 
@@ -19,12 +20,13 @@ const options = {
   headless: false,
   args: ["--no-sandbox", "--disable-dev-shm-usage"]
 };
+
 const url = "https://www.youlikehits.com/youtubenew2.php";
 
 (async () => {
   await youlikehitsAutomation(numberOfRuns);
 })().catch((e) => {
-  console.log(e.message);
+  console.log(e);
 });
 
 async function youlikehitsAutomation(numberOfRuns) {
@@ -32,7 +34,7 @@ async function youlikehitsAutomation(numberOfRuns) {
     return;
   }
   const browser = await puppeteer.launch(options);
-  const page = await initializePageWithCookies(browser);
+  const page = await initializePageWithCookies(browser, url);
   showWelcomeScreen();
   const totalpoints = await processAllHits(page, url);
   showClosingScreen(totalpoints);

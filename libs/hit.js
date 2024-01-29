@@ -1,4 +1,5 @@
 const timeoutPromise = require("./lib_time").timeoutPromise;
+const handlePageBlockade = require("./lib_counter_antiBot");
 const chalk = require("chalk");
 const ProgressBar = require("progress");
 

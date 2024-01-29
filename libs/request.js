@@ -1,8 +1,8 @@
 const fs = require("fs").promises;
 
-const COOKIES_PATH = "./cookies.json";
+const COOKIES_PATH = "./cookies/cookies.json";
 
-async function initializePageWithCookies(browser) {
+async function initializePageWithCookies(browser, url) {
   const page = await browser.newPage();
   await page.setDefaultNavigationTimeout(0);
 
@@ -16,3 +16,5 @@ async function initializePageWithCookies(browser) {
   await fs.writeFile(COOKIES_PATH, JSON.stringify(savedcookies));
   return page;
 }
+
+module.exports = initializePageWithCookies;

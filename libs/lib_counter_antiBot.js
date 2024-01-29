@@ -1,3 +1,4 @@
+const timeout = require("./lib_time").timeout;
 const chalk = require("chalk");
 const warning = chalk.bgRed;
 const log = console.log;
@@ -30,3 +31,5 @@ async function handlePageBlockade(page, departUrl) {
     await page.goto(departUrl);
   }
 }
+
+module.exports = handlePageBlockade;
