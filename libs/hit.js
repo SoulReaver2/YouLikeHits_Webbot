@@ -1,5 +1,6 @@
 const timeoutPromise = require("./lib_time").timeoutPromise;
 const handlePageBlockade = require("./lib_counter_antiBot");
+const initializePageWithCookies = require("./request");
 const chalk = require("chalk");
 const ProgressBar = require("progress");
 
@@ -122,7 +123,7 @@ function trackHitProgression(hit, popup) {
 
 function showHitInfos(hit) {
   log(
-    chalk.green("Video Title: ") +
+    chalk.green("Hit Title: ") +
       hit.title +
       chalk.green(" | Wait time: ") +
       hit.duration +
@@ -152,4 +153,16 @@ async function processAllHits(page, url) {
   return totalpoints;
 }
 
-module.exports = processAllHits;
+function processHitsOnPageContext(browser, url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const page = await initializePageWithCookies(browser, url);
+      const totalpoints = await processAllHits(page, url);
+      resolve(totalpoints);
+    } catch (err) {
+      reject(err.message);
+    }
+  });
+}
+
+module.exports = processHitsOnPageContext;
