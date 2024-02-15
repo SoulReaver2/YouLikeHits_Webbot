@@ -2,14 +2,11 @@ const timeoutPromise = require("./lib_time").timeoutPromise;
 const handlePageBlockade = require("./lib_counter_antiBot");
 const initializePageWithCookies = require("./request");
 const chalk = require("chalk");
-const ProgressBar = require("progress");
+const colors = require("ansi-colors");
 
 const INVALID_POPUP_DURATION_ms = 10000;
-const HOW_LONG_TO_WAIT_FOR_POPUP_ms = 7000;
+const HOW_LONG_TO_WAIT_FOR_POPUP_ms = 10000;
 const CLOCK_TICK_ms = 1000;
-
-const DEFAULT_NUMBER_OF_HITS = 50;
-let numberOfHits = DEFAULT_NUMBER_OF_HITS;
 
 const log = console.log;
 const error = chalk.red;
@@ -70,7 +67,7 @@ async function launchHit(page) {
 
 async function closeHit(page, popup, hit) {
   if (hit.status == "INVALID") {
-    log(error("This video has no reward! Next..."));
+    //log(error("This video has no reward! Next..."));
     await Promise.all([
       page.click("#listall > center:nth-child(1) > a:last-child"),
       page.waitForResponse((response) => response.status() === 200)
@@ -82,61 +79,64 @@ async function closeHit(page, popup, hit) {
     } catch (e) {
       true;
     }
-    showHitInfos(hit);
     return hit.points;
   }
 }
 
-function trackHitProgression(hit, popup) {
+function trackHitProgression(hit, popup, context) {
   return new Promise((resolve) => {
-    const bar = new ProgressBar(
-      "Processing video " +
-        hit.id +
-        " | Time remaining: [:bar] :etas | :percent",
+    const multibar = context.display;
+    const bar = multibar.create(
+      hit.duration,
+      0,
       {
-        complete: "=",
-        incomplete: " ",
-        width: 20,
-        total: hit.duration
-      }
+        status: "102",
+        tab: context.tab_id,
+        task: hit.id,
+        title: hit.title,
+        reward: 0
+      },
+      barOptions("cyan")
     );
+
     let hitDuration_ms = hit.duration * 1000;
     let delay = 0;
     let interval = setInterval(() => {
       delay += CLOCK_TICK_ms;
-      bar.tick();
+      bar.increment();
       if (popup.isClosed() && delay <= INVALID_POPUP_DURATION_ms) {
         clearInterval(interval);
+        bar.update({
+          status: colors.red("500"),
+          reward: colors.red("0")
+        });
         resolve("INVALID");
       }
       if (popup.isClosed() && delay >= hitDuration_ms) {
         clearInterval(interval);
+        bar.update({
+          status: colors.green("200"),
+          reward: colors.yellow(hit.points)
+        });
         resolve("SUCCESS");
       }
       if (!popup.isClosed() && delay >= hitDuration_ms) {
         clearInterval(interval);
+        bar.update({
+          status: colors.green("210"),
+          reward: colors.yellow(hit.points)
+        });
         resolve("END");
       }
     }, CLOCK_TICK_ms);
   });
 }
 
-function showHitInfos(hit) {
-  log(
-    chalk.green("Hit Title: ") +
-      hit.title +
-      chalk.green(" | Wait time: ") +
-      hit.duration +
-      chalk.green(" seconds | Points gained: ") +
-      chalk.bold.yellow(hit.points)
-  );
-}
-
-async function processAllHits(page, url) {
+async function processAllHits(page, context) {
   let totalpoints = 0;
   let i = 0;
-  while (i < numberOfHits) {
-    const hit = await isHit(page, url);
+  while (i < context.numberOfHits) {
+    const hit = await isHit(page, context.url);
     if (hit === false) {
       continue;
     }
@@ -146,23 +146,43 @@ async function processAllHits(page, url) {
     }
 
     hit.id = i + 1;
-    hit.status = await trackHitProgression(hit, popup);
+    hit.status = await trackHitProgression(hit, popup, context);
     totalpoints += await closeHit(page, popup, hit);
     i++;
   }
   return totalpoints;
 }
 
-function processHitsOnPageContext(browser, url) {
+function processHitsOnPageContext(browser, context) {
   return new Promise(async (resolve, reject) => {
     try {
-      const page = await initializePageWithCookies(browser, url);
-      const totalpoints = await processAllHits(page, url);
+      const page = await initializePageWithCookies(browser, context.url);
+      const totalpoints = await processAllHits(page, context);
       resolve(totalpoints);
     } catch (err) {
       reject(err.message);
     }
   });
+}
+
+function barformat(color) {
+  return (
+    "tab{tab}_task{task}: " +
+    colors[color]("{title}") +
+    " | Eta: [" +
+    colors[color]("{bar}") +
+    "] {eta_formatted} | {percentage}% " +
+    "| [{status}] | Reward: {reward}"
+  );
+}
+
+function barOptions(color) {
+  return {
+    format: barformat(color),
+    barsize: 20,
+    barCompleteChar: "=",
+    barIncompleteChar: "-"
+  };
 }
 
 module.exports = processHitsOnPageContext;
