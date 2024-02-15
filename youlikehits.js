@@ -6,6 +6,7 @@ const timeout = require("./libs/lib_time").timeout;
 
 const processHitsOnPageContext = require("./libs/hit");
 const { showWelcomeScreen, showClosingScreen } = require("./libs/cli_views");
+const Climultibar = require("./libs/cli_multibar").getMultibar;
 
 const DEFAULT_NUMBER_OF_RUNS = 1;
 let numberOfRuns = DEFAULT_NUMBER_OF_RUNS;
@@ -22,16 +23,20 @@ const options = {
 };
 
 const url = "https://www.youlikehits.com/youtubenew2.php";
-const MAX_CONCURRENCY = 3;
+const MAX_CONCURRENCY = 2;
 const Cluster = [
   {
     url: "https://www.youlikehits.com/youtubenew2.php",
-    concurrency: MAX_CONCURRENCY
-  },
+    concurrency: 1,
+    numberOfHits: 10
+  }
+  /*
   {
     url: "https://www.youlikehits.com/soundcloudplays.php",
-    concurrency: 1
+    concurrency: 1?
+    numberOfHits: 10
   }
+  */
 ];
 
 (async () => {
@@ -49,6 +54,9 @@ async function youlikehitsAutomation(numberOfRuns) {
   const totalpoints = await concurrentPagesHitProcessing(browser, Cluster);
   showClosingScreen(totalpoints);
   await browser.close();
+  if (numberOfRuns == 1) {
+    return;
+  }
   timeout(TEMPORISATION_SECONDES * 1000).then(async () => {
     await youlikehitsAutomation(numberOfRuns - 1);
   });
@@ -56,12 +64,18 @@ async function youlikehitsAutomation(numberOfRuns) {
 
 async function concurrentPagesHitProcessing(browser, Cluster) {
   const queue = [];
-  for (const { url, concurrency } of Cluster) {
-    for (let i = 0; i < concurrency; i++) {
-      queue.push(processHitsOnPageContext(browser, url));
+  const multibar = Climultibar();
+  let tab_id = 0;
+  for (const context of Cluster) {
+    for (let i = 0; i < context.concurrency; i++) {
+      tab_id++;
+      context.tab_id = tab_id;
+      context.display = multibar;
+      queue.push(processHitsOnPageContext(browser, context));
     }
   }
   const all = await Promise.all(queue);
   const totalpoints = all.reduce((a, b) => a + b, 0);
+  multibar.stop();
   return totalpoints;
 }
