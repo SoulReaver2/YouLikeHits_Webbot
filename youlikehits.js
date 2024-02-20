@@ -22,21 +22,20 @@ const options = {
   args: ["--no-sandbox", "--disable-dev-shm-usage"]
 };
 
-const url = "https://www.youlikehits.com/youtubenew2.php";
-const MAX_CONCURRENCY = 2;
+const MAX_CONCURRENCY = 1;
 const Cluster = [
   {
     url: "https://www.youlikehits.com/youtubenew2.php",
-    concurrency: 1,
+    concurrency: MAX_CONCURRENCY,
     numberOfHits: 10
   }
   /*
   {
     url: "https://www.youlikehits.com/soundcloudplays.php",
-    concurrency: 1?
-    numberOfHits: 10
+    concurrency: 1,
+    numberOfHits: 5
   }
-  */
+  //*/
 ];
 
 (async () => {
@@ -54,12 +53,10 @@ async function youlikehitsAutomation(numberOfRuns) {
   const totalpoints = await concurrentPagesHitProcessing(browser, Cluster);
   showClosingScreen(totalpoints);
   await browser.close();
-  if (numberOfRuns == 1) {
-    return;
-  }
-  timeout(TEMPORISATION_SECONDES * 1000).then(async () => {
+  if (numberOfRuns > 1) {
+    await timeout(TEMPORISATION_SECONDES * 1000);
     await youlikehitsAutomation(numberOfRuns - 1);
-  });
+  }
 }
 
 async function concurrentPagesHitProcessing(browser, Cluster) {
