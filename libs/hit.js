@@ -4,6 +4,8 @@ const initializePageWithCookies = require("./request");
 const chalk = require("chalk");
 const colors = require("ansi-colors");
 
+const SHADES = ["cyan", "magenta", "blue", "yellow", "green", "red"];
+
 const INVALID_POPUP_DURATION_ms = 10000;
 const HOW_LONG_TO_WAIT_FOR_POPUP_ms = 10000;
 const CLOCK_TICK_ms = 1000;
@@ -49,7 +51,12 @@ async function getHitData(page) {
 }
 
 async function launchHit(page) {
+  const timerSelector = "div#listall > center > span";
+  const timerIsHidden = await page.evaluate(isDomElementHidden, timerSelector);
   try {
+    if (timerIsHidden === false) {
+      throw new Error("The previous timer didn't close properly!");
+    }
     const [popup] = await Promise.race([
       Promise.all([
         new Promise((resolve) => page.once("popup", resolve)),
@@ -59,7 +66,7 @@ async function launchHit(page) {
     ]);
     return popup;
   } catch (err) {
-    log(error("View button unresponsive! Reload..."));
+    log(error(err.message + ": Can't launch hit! Reloading..."));
     await page.reload({ waitUntil: ["networkidle0", "domcontentloaded"] });
     return false;
   }
@@ -67,19 +74,24 @@ async function launchHit(page) {
 
 async function closeHit(page, popup, hit) {
   if (hit.status == "INVALID") {
-    //log(error("This video has no reward! Next..."));
     await Promise.all([
       page.click("#listall > center:nth-child(1) > a:last-child"),
       page.waitForResponse((response) => response.status() === 200)
     ]);
     return 0;
   } else {
+    const successNode = await page.$(
+      "#showresult > table > tbody > tr > td > center > b > font"
+    );
     try {
       await popup.close();
     } catch (e) {
       true;
     }
-    return hit.points;
+    if (successNode) {
+      return hit.points;
+    }
+    return 0;
   }
 }
 
@@ -96,7 +108,7 @@ function trackHitProgression(hit, popup, context) {
         title: hit.title,
         reward: 0
       },
-      barOptions("cyan")
+      barOptions(SHADES[context.tab_id - 1])
     );
 
     let hitDuration_ms = hit.duration * 1000;
@@ -107,7 +119,7 @@ function trackHitProgression(hit, popup, context) {
       if (popup.isClosed() && delay <= INVALID_POPUP_DURATION_ms) {
         clearInterval(interval);
         bar.update({
-          status: colors.red("500"),
+          status: colors.red("400"),
           reward: colors.red("0")
         });
         resolve("INVALID");
@@ -184,5 +196,16 @@ function barOptions(color) {
     barIncompleteChar: "-"
   };
 }
+
+const isDomElementHidden = (selector) => {
+  const element = document.querySelector(selector);
+  if (!element) {
+    return true;
+  }
+  return (
+    element.style.display === "none" ||
+    window.getComputedStyle(element).getPropertyValue("display") === "none"
+  );
+};
 
 module.exports = processHitsOnPageContext;
